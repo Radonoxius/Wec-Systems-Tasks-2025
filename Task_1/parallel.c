@@ -2,6 +2,7 @@
 #include<stdint.h>
 #include<stdio.h>
 #include<time.h>
+#include<omp.h>
 
 const uint64_t ARRAY_SIZE = 40000000;
 
@@ -34,10 +35,16 @@ int main() {
     uint64_t *result = (uint64_t *) malloc(sizeof(uint64_t) * ARRAY_SIZE);
 
     struct timespec start_time, end_time;
-
+    
     timespec_get(&start_time, TIME_UTC);
-    for (uint64_t i = 0; i < ARRAY_SIZE; i++)
-        result[i] = a1[i] + a2[i];
+    #pragma omp parallel num_threads(4)
+    {
+        #pragma omp for schedule(static, 10000000)
+        {
+            for (uint64_t i = 0; i < ARRAY_SIZE; i++)
+                result[i] = a1[i] + a2[i];
+        }
+    }
     timespec_get(&end_time, TIME_UTC);
     
     double duration =
@@ -45,12 +52,12 @@ int main() {
         (((double) start_time.tv_sec) + (((double) start_time.tv_nsec) * 0.000000001));
 
     printf(
-        "Time taken to add all elements sequentially: %f us\n",
+        "Time taken to add all elements in parallel: %f us\n",
         1000000.0 * duration
     );
-
-    printf("Ignore (Preventing unnecessary optimisation): %lu\n", result[90009]);
     
+    printf("Ignore (Preventing unnecessary optimisation): %lu\n", result[90009]);
+
     free(result);
     free(a2);
     free(a1);
