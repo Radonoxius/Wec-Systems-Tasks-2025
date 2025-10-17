@@ -14,3 +14,4 @@ parallel.c: (with 4 threads)
 > Time taken to add all elements in parallel: 251345.157623 us (micro seconds)
 
 These benchmarks were run on an **AMD A6-6310** system (4Gb RAM and 1.8GHz max freq.)
+These executables are available in the _Task 1 Submission_ release as well.
