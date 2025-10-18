@@ -1,34 +1,39 @@
 use std::time::Instant;
 
-use shracker::{generate_sha256_hash, HASH1};
+use sha2::{Digest, Sha256};
+use shracker::{solve_hash_1, HASH1};
 
 fn main() {
     let start_time = Instant::now();
 
-    'outer: for c1 in 'a'..='z' {
-        for c2 in 'a'..='z' {
-            for c3 in 'a'..='z' {
-                for c4 in 'a'..='z' {
-                    for c5 in 'a'..='z' {
-                        for c6 in 'a'..='z' {
-                            let mut word = String::with_capacity(6);
-                            word.push(c1);
-                            word.push(c2);
-                            word.push(c3);
-                            word.push(c4);
-                            word.push(c5);
-                            word.push(c6);
+    solve_hash_1(|
+        word,
+        success_flag_ref,
+        count_ref
+        | -> String {
+        let mut current_word = String::with_capacity(6);
 
-                            if HASH1 == generate_sha256_hash(&word) {
-                                println!("The word is: {}", word);
-                                break 'outer;
-                            }
-                        }
+        'inner: for c4 in 'a'..='z' {
+            for c5 in 'a'..='z' {
+                for c6 in 'a'..='z' {
+                    current_word = word.clone();
+                    current_word.push(c4);
+                    current_word.push(c5);
+                    current_word.push(c6);
+
+                    *count_ref += 1;
+
+                    if HASH1 == Sha256::digest(&current_word)[..] {
+                        println!("The word is: {}", &current_word);
+                        *success_flag_ref = true;
+                        break 'inner;
                     }
                 }
             }
         }
-    }
+
+        current_word
+    });
 
     let duration = start_time.elapsed();
     println!("The computation took: {} s", duration.as_secs());
