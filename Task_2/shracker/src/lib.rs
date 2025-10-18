@@ -1,12 +1,10 @@
+use hex_literal::hex;
+use sha2::{Digest, Sha256};
+
+//'system' is the answer :-)
 //HASH1 is obtained from 6 letter word that has lowercase alphabets only
-pub const HASH1: [u8; 64] = *b"bbc5e661e106c6dcd8dc6dd186454c2fcba3c710fb4d8e71a60c93eaf077f073";
-
-//HASH2 is obtained from 7 letter word that has both lower and upper case alphabets
-pub const HASH2: [u8; 64] = *b"8d7ed7808ef4c15a1bfb45406d7fafdf6afa48928afb88a64baa2c849296ac6d";
-
-pub fn solve_hash_1(f: fn(String, &mut bool, &mut u64) -> String) -> String {
+pub fn solve_hash_1_seqential(f: fn(String, &mut bool, &mut u64)) {
     let mut success = false;
-    let mut result = String::new();
     let mut count = 0u64;
 
     'outer: for c1 in 'a'..='z' {
@@ -17,8 +15,8 @@ pub fn solve_hash_1(f: fn(String, &mut bool, &mut u64) -> String) -> String {
                     word.push(c2);
                     word.push(c3);
 
-                result = f(word, &mut success, &mut count);
-                print!("Theoretical progress: {}/308,915,776\r", &count);
+                f(word, &mut success, &mut count);
+                print!("\rTheoretical progress: {}/308915776", &count);
 
                 if success {
                     break 'outer;
@@ -26,6 +24,22 @@ pub fn solve_hash_1(f: fn(String, &mut bool, &mut u64) -> String) -> String {
             }
         }
     }
+}
 
-    result
+
+pub fn solve_hash_2_parallel(_f: fn(String, &mut bool, &mut u64) -> String) {
+    todo!()
+}
+
+pub fn equals_hash_1(string: &String) -> bool {
+    hex!(
+        "bbc5e661e106c6dcd8dc6dd186454c2fcba3c710fb4d8e71a60c93eaf077f073"
+    )[..] == Sha256::digest(&string.as_bytes())[..]
+}
+
+//HASH2 is obtained from 7 letter word that has both lower and upper case alphabets
+pub fn equals_hash_2(string: &String) -> bool {
+    hex!(
+        "8d7ed7808ef4c15a1bfb45406d7fafdf6afa48928afb88a64baa2c849296ac6d"
+    )[..] == Sha256::digest(&string.as_bytes())[..]
 }
