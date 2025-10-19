@@ -1,35 +1,78 @@
-use std::{thread::JoinHandle, time::Instant};
+use std::{env::args, thread::JoinHandle, time::Instant};
 
-use shracker::{generate_loop_range, hash_1_parallel_job, solve_hash_1_parallel};
+use shracker::{generate_loop_range1, generate_loop_range2, hash_1_parallel_job, hash_2_parallel_job, solve_hash_parallel};
 
 fn main() {
-    let start_time = Instant::now();
+    let hash_selector = args().nth(1)
+        .expect("\nPlease send an argument to specify the hash to be cracked.\nPass 1 to crack hash 1 or 2 to crack hash 2.\n")
+        .parse::<u8>()
+        .unwrap();
 
-    solve_hash_1_parallel(|
-            success,
-            completion_count
-        | -> Vec<JoinHandle<()>> {
-            let mut join_handles = Vec::<JoinHandle<()>>::new();
+    match hash_selector {
+        1 => {
+            let start_time = Instant::now();
 
-            for i in 0..=1 {
-                for j in 0..=1 {
-                    for k in 0..=1 {
-                        hash_1_parallel_job(
-                            &mut join_handles,
-                            generate_loop_range(i),
-                            generate_loop_range(j),
-                            generate_loop_range(k),
-                            &success,
-                            &completion_count
-                        );
+            solve_hash_parallel(|
+                    success,
+                    completion_count
+                | -> Vec<JoinHandle<()>> {
+                    let mut join_handles = Vec::<JoinHandle<()>>::new();
+
+                    for i in 0..=1 {
+                        for j in 0..=1 {
+                            for k in 0..=1 {
+                                hash_1_parallel_job(
+                                    &mut join_handles,
+                                    generate_loop_range1(i),
+                                    generate_loop_range1(j),
+                                    generate_loop_range1(k),
+                                    &success,
+                                    &completion_count
+                                );
+                            }
+                        }
                     }
+
+                    join_handles
                 }
-            }
+            );
 
-            join_handles
-        }
-    );
+            let duration = start_time.elapsed();
+            println!("\nThe computation took: {} s", duration.as_secs());
+        },
 
-    let duration = start_time.elapsed();
-    println!("The computation took: {} s", duration.as_secs());
+        2 => {
+            let start_time = Instant::now();
+
+            solve_hash_parallel(|
+                    success,
+                    completion_count
+                | -> Vec<JoinHandle<()>> {
+                    let mut join_handles = Vec::<JoinHandle<()>>::new();
+
+                    for i in 0..=1 {
+                        for j in 0..=1 {
+                            for k in 0..=1 {
+                                hash_2_parallel_job(
+                                    &mut join_handles,
+                                    generate_loop_range2(i),
+                                    generate_loop_range2(j),
+                                    generate_loop_range2(k),
+                                    &success,
+                                    &completion_count
+                                );
+                            }
+                        }
+                    }
+
+                    join_handles
+                }
+            );
+
+            let duration = start_time.elapsed();
+            println!("\nThe computation took: {} s", duration.as_secs());
+        },
+
+        _ => panic!("\nPass 1 to crack hash 1 or 2 to crack hash 2 as a program argument\n")
+    }
 }

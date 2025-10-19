@@ -26,12 +26,13 @@ pub fn solve_hash_1_seqential(f: fn(String, &mut bool, &mut u64)) {
     }
 }
 
-pub fn solve_hash_1_parallel(
+pub fn solve_hash_parallel(
     f: fn(
         Arc<RwLock<bool>>,
         Arc<Mutex<u64>>
     ) -> Vec<JoinHandle<()>>
 ) {
+    hash_2_range();
     let success = Arc::new(RwLock::new(false));
     let count = Arc::new(Mutex::new(0u64));
 
@@ -42,7 +43,7 @@ pub fn solve_hash_1_parallel(
     }
 }
 
-pub fn generate_loop_range(index: u8) -> RangeInclusive<char> {
+pub fn generate_loop_range1(index: u8) -> RangeInclusive<char> {
     match index {
         0 => 'a'..='m',
         1 => 'n'..='z',
@@ -93,12 +94,10 @@ pub fn hash_1_parallel_job(
                                 }
                             }
 
-                            if !*success1.read().unwrap() {
-                                print!(
-                                    "\rTheoretical progress: {}/308915776",
-                                    completion_count1.lock().unwrap()
-                                );
-                            }
+                            print!(
+                                "\rTheoretical progress: {}/308915776",
+                                completion_count1.lock().unwrap()
+                            );
                         }
                     }
                 }
@@ -107,9 +106,83 @@ pub fn hash_1_parallel_job(
     );
 }
 
+pub fn hash_2_range() -> [char; 52] {
+    let mut range = ['a'; 52];
 
-pub fn solve_hash_2_parallel(_f: fn(String, &mut bool, &mut u64) -> String) {
-    todo!()
+    let mut idx = 0;
+    for ci in 'a'..='z' {
+        range[idx] = ci;
+        idx += 1;
+    }
+    for cj in 'A'..='Z' {
+        range[idx] = cj;
+        idx +=1;
+    }
+
+    range
+}
+
+pub fn generate_loop_range2(index: u8) -> RangeInclusive<char> {
+    match index {
+        0 => 'a'..='z',
+        1 => 'A'..='Z',
+        _ => panic!("Index can only be a 0 or 1!")
+    }
+}
+
+pub fn hash_2_parallel_job(
+    join_handles: &mut Vec<JoinHandle<()>>,
+    loop4_range: RangeInclusive<char>,
+    loop5_range: RangeInclusive<char>,
+    loop6_range: RangeInclusive<char>,
+    success: &Arc<RwLock<bool>>,
+    completion_count: &Arc<Mutex<u64>>
+) {
+    let success1 = success.clone();
+    let completion_count1 = completion_count.clone();
+
+    join_handles.push(
+        thread::spawn(
+            move || {
+                'outer: for c1 in hash_2_range() {
+                    for c2 in hash_2_range() {
+                        for c3 in hash_2_range() {
+                            for c4 in loop4_range.clone() {
+                                for c5 in loop5_range.clone() {
+                                    for c6 in loop6_range.clone() {
+                                        let mut current_word = String::with_capacity(6);
+                                        current_word.push(c1);
+                                        current_word.push(c2);
+                                        current_word.push(c3);
+                                        current_word.push(c4);
+                                        current_word.push(c5);
+                                        current_word.push(c6);
+
+                                        *completion_count1.lock().unwrap() += 1;
+
+                                        if *success1.read().unwrap() {
+                                            break 'outer;
+                                        }
+
+                                        if equals_hash_1(&current_word) {
+                                            println!("\nThe secret word is: {}", &current_word);
+                                            *success1.write().unwrap() = true;
+                                            break 'outer;
+                                        }
+                                    }
+                                }
+                            }
+
+                            print!(
+                                "\rTheoretical progress: {}/19770609664",
+                                completion_count1.lock().unwrap()
+                            );
+                        }
+                    }
+                }
+            }
+        )
+    );
 }
 
 //'system' is the answer :-)
