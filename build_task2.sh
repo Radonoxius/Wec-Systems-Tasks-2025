@@ -2,9 +2,8 @@
 
 cd Task_2/shracker
 
-cargo r --release --bin shracker_serial
+cargo b --release --bin shracker_serial
 
-cargo r --release
+cargo b --release
 
-cargo clean
 cd ../..

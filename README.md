@@ -3,7 +3,7 @@ WEC Systems task: Parallel computing with C (includes Rust + FFI as well)
 
 ## Task 1
 The task 1 programs were compiled with the highest levels of
-optimisations applied using `-O3` flag. It was compiled with `clang`.
+optimisations applied using `-O3` flag. It is compiled with `clang`.
 
 sequential.c:
 
