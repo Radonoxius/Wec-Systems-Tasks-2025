@@ -1,36 +1,32 @@
-use std::time::Instant;
+use std::{thread::JoinHandle, time::Instant};
 
-use shracker::{equals_hash_1, solve_hash_1_seqential};
+use shracker::{generate_loop_range, hash_1_parallel_job, solve_hash_1_parallel};
 
 fn main() {
     let start_time = Instant::now();
 
-    solve_hash_1_seqential(|
-            word,
-            success_flag_ref,
-            count_ref
-        | {
-            #[allow(unused_assignments)]
-            let mut current_word = String::with_capacity(6);
+    solve_hash_1_parallel(|
+            success,
+            completion_count
+        | -> Vec<JoinHandle<()>> {
+            let mut join_handles = Vec::<JoinHandle<()>>::new();
 
-            'inner: for c4 in 'a'..='z' {
-                for c5 in 'a'..='z' {
-                    for c6 in 'a'..='z' {
-                        current_word = word.clone();
-                        current_word.push(c4);
-                        current_word.push(c5);
-                        current_word.push(c6);
-
-                        *count_ref += 1;
-
-                        if equals_hash_1(&current_word) {
-                            println!("\nThe secret word is: {}", &current_word);
-                            *success_flag_ref = true;
-                            break 'inner;
-                        }
+            for i in 0..=1 {
+                for j in 0..=1 {
+                    for k in 0..=1 {
+                        hash_1_parallel_job(
+                            &mut join_handles,
+                            generate_loop_range(i),
+                            generate_loop_range(j),
+                            generate_loop_range(k),
+                            &success,
+                            &completion_count
+                        );
                     }
                 }
             }
+
+            join_handles
         }
     );
 
