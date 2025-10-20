@@ -164,7 +164,7 @@ pub fn hash_2_parallel_job(
                                             break 'outer;
                                         }
 
-                                        if equals_hash_1(&current_word) {
+                                        if equals_hash_2(&current_word) {
                                             println!("\nThe secret word is: {}", &current_word);
                                             *success1.write().unwrap() = true;
                                             break 'outer;
@@ -193,9 +193,10 @@ pub fn equals_hash_1(string: &String) -> bool {
     )[..] == Sha256::digest(&string.as_bytes())[..]
 }
 
+//'kerNEl' is the answer :-)
 //HASH2 is obtained from 7 letter word that has both lower and upper case alphabets
 pub fn equals_hash_2(string: &String) -> bool {
     hex!(
-        "8d7ed7808ef4c15a1bfb45406d7fafdf6afa48928afb88a64baa2c849296ac6d"
+        "502eadebf906967ad022cb7b4553b867f245770595e94df8d475b5a48eaaf434"
     )[..] == Sha256::digest(&string.as_bytes())[..]
 }
