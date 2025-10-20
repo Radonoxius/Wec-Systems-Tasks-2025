@@ -35,5 +35,5 @@ fn main() {
     );
 
     let duration = start_time.elapsed();
-    println!("The computation took: {} s", duration.as_secs());
+    println!("\nThe computation took: {} s", duration.as_secs());
 }
