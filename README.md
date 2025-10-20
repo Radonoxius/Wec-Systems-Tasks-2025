@@ -16,7 +16,7 @@ parallel.c: (with 4 threads)
 These benchmarks were run on an **AMD A6-6310** system (4Gb RAM and 1.8GHz max freq.)
 These executables are available in the _Task 1 Submission_ release as well.
 
-## Tast 2
+## Task 2
 The task 2 programs were compiled with highest levels of
 optimisations applied.
 
