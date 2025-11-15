@@ -1,4 +1,4 @@
-use std::{ops::RangeInclusive, sync::{Arc, Mutex, RwLock}, thread::{self, JoinHandle}};
+use std::{ops::RangeInclusive, sync::{Arc, atomic::{AtomicBool, AtomicU64, Ordering}}, thread::{self, JoinHandle}};
 
 use hex_literal::hex;
 use sha2::{Digest, Sha256};
@@ -28,13 +28,13 @@ pub fn solve_hash_1_seqential(f: fn(String, &mut bool, &mut u64)) {
 
 pub fn solve_hash_parallel(
     f: fn(
-        Arc<RwLock<bool>>,
-        Arc<Mutex<u64>>
+        Arc<AtomicBool>,
+        Arc<AtomicU64>
     ) -> Vec<JoinHandle<()>>
 ) {
     hash_2_range();
-    let success = Arc::new(RwLock::new(false));
-    let count = Arc::new(Mutex::new(0u64));
+    let success = Arc::new(AtomicBool::new(false));
+    let count = Arc::new(AtomicU64::new(0));
 
     let join_handles = f(success, count);
 
@@ -56,8 +56,8 @@ pub fn hash_1_parallel_job(
     loop4_range: RangeInclusive<char>,
     loop5_range: RangeInclusive<char>,
     loop6_range: RangeInclusive<char>,
-    success: &Arc<RwLock<bool>>,
-    completion_count: &Arc<Mutex<u64>>
+    success: &Arc<AtomicBool>,
+    completion_count: &Arc<AtomicU64>
 ) {
     let success1 = success.clone();
     let completion_count1 = completion_count.clone();
@@ -79,15 +79,15 @@ pub fn hash_1_parallel_job(
                                         current_word.push(c5);
                                         current_word.push(c6);
 
-                                        *completion_count1.lock().unwrap() += 1;
+                                        completion_count1.fetch_add(1, Ordering::Relaxed);
 
-                                        if *success1.read().unwrap() {
+                                        if success1.load(Ordering::Relaxed) {
                                             break 'outer;
                                         }
 
                                         if equals_hash_1(&current_word) {
                                             println!("\nThe secret word is: {}", &current_word);
-                                            *success1.write().unwrap() = true;
+                                            success1.store(true, Ordering::Release);
                                             break 'outer;
                                         }
                                     }
@@ -96,7 +96,7 @@ pub fn hash_1_parallel_job(
 
                             print!(
                                 "\rTheoretical progress: {}/308915776",
-                                completion_count1.lock().unwrap()
+                                completion_count1.load(Ordering::Acquire)
                             );
                         }
                     }
@@ -135,8 +135,8 @@ pub fn hash_2_parallel_job(
     loop4_range: RangeInclusive<char>,
     loop5_range: RangeInclusive<char>,
     loop6_range: RangeInclusive<char>,
-    success: &Arc<RwLock<bool>>,
-    completion_count: &Arc<Mutex<u64>>
+    success: &Arc<AtomicBool>,
+    completion_count: &Arc<AtomicU64>
 ) {
     let success1 = success.clone();
     let completion_count1 = completion_count.clone();
@@ -158,15 +158,15 @@ pub fn hash_2_parallel_job(
                                         current_word.push(c5);
                                         current_word.push(c6);
 
-                                        *completion_count1.lock().unwrap() += 1;
+                                        completion_count1.fetch_add(1, Ordering::Relaxed);
 
-                                        if *success1.read().unwrap() {
+                                        if success1.load(Ordering::Relaxed) {
                                             break 'outer;
                                         }
 
                                         if equals_hash_2(&current_word) {
                                             println!("\nThe secret word is: {}", &current_word);
-                                            *success1.write().unwrap() = true;
+                                            success1.store(true, Ordering::Release);
                                             break 'outer;
                                         }
                                     }
@@ -175,7 +175,7 @@ pub fn hash_2_parallel_job(
 
                             print!(
                                 "\rTheoretical progress: {}/19770609664",
-                                completion_count1.lock().unwrap()
+                                completion_count1.load(Ordering::Acquire)
                             );
                         }
                     }
@@ -194,7 +194,7 @@ pub fn equals_hash_1(string: &String) -> bool {
 }
 
 //'kerNEl' is the answer :-)
-//HASH2 is obtained from 7 letter word that has both lower and upper case alphabets
+//HASH2 is obtained from 6 letter word that has both lower and upper case alphabets
 pub fn equals_hash_2(string: &String) -> bool {
     hex!(
         "502eadebf906967ad022cb7b4553b867f245770595e94df8d475b5a48eaaf434"
