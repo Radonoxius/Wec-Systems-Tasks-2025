@@ -19,7 +19,7 @@ uint64_t gpu_execute(
         NULL
     );
     if (errcode != CL_SUCCESS) {
-        printf("An error occured while getting the opencl platform.");
+        printf("An error occured while getting the opencl platform.\n");
         exit(1);
     }
     
@@ -33,7 +33,7 @@ uint64_t gpu_execute(
         NULL
     );
     if (errcode != CL_SUCCESS) {
-        printf("An error occured while getting platform gpu.");
+        printf("An error occured while getting platform gpu.\n");
         exit(1);
     }
 
@@ -46,7 +46,7 @@ uint64_t gpu_execute(
         &errcode
     );
     if (errcode != CL_SUCCESS) {
-        printf("An error occured while creating opencl context.");
+        printf("An error occured while creating opencl context.\n");
         clReleaseDevice(gpu);
         exit(1);
     }
@@ -54,7 +54,7 @@ uint64_t gpu_execute(
     cl_program shader;
     clCreateProgramWithSource(context, 1, &shader_src, &shader_len, &errcode);
     if (errcode != CL_SUCCESS) {
-        printf("An error occured while creating the shader.");
+        printf("An error occured while creating the shader.\n");
         clReleaseContext(context);
         clReleaseDevice(gpu);
         exit(1);
@@ -69,7 +69,7 @@ uint64_t gpu_execute(
         NULL
     );
     if (errcode != CL_SUCCESS) {
-        printf("An error occured while compiling/linking the shader.");
+        printf("An error occured while compiling/linking the shader.\n");
         clReleaseProgram(shader);
         clReleaseContext(context);
         clReleaseDevice(gpu);
@@ -79,7 +79,7 @@ uint64_t gpu_execute(
     cl_kernel shader_kernel;
     clCreateKernel(shader, "solver", &errcode);
     if (errcode != CL_SUCCESS) {
-        printf("An error occured while creating the shader kernel.");
+        printf("An error occured while creating the shader kernel.\n");
         clReleaseProgram(shader);
         clReleaseContext(context);
         clReleaseDevice(gpu);
@@ -87,9 +87,9 @@ uint64_t gpu_execute(
     }
 
     cl_command_queue queue;
-    clCreateCommandQueue(context, gpu, NULL, &errcode);
+    clCreateCommandQueue(context, gpu, 0, &errcode);
     if (errcode != CL_SUCCESS) {
-        printf("An error occured while creating the gpu command queue.");
+        printf("An error occured while creating the gpu command queue.\n");
         clReleaseKernel(shader_kernel);
         clReleaseProgram(shader);
         clReleaseContext(context);
@@ -100,26 +100,26 @@ uint64_t gpu_execute(
     uint64_t global_work_size[2] = {tree_grid_size, tree_grid_size};
     uint64_t local_work_size[2] = {tree_grid_size, 1};
     uint64_t offset[2] = {0, 0};
-    errcode = clEnqueueNDRangeKernel(
-        queue,
-        shader_kernel,
-        2,
-        offset,
-        global_work_size,
-        local_work_size,
-        NULL,
-        NULL,
-        NULL
-    );
-    if (errcode != CL_SUCCESS) {
-        printf("An error occured while requesting kernel execution.");
-        clReleaseCommandQueue(queue);
-        clReleaseKernel(shader_kernel);
-        clReleaseProgram(shader);
-        clReleaseContext(context);
-        clReleaseDevice(gpu);
-        exit(1);
-    }
+    //errcode = clEnqueueNDRangeKernel(
+    //    queue,
+    //    shader_kernel,
+    //    2,
+    //    offset,
+    //    global_work_size,
+    //    local_work_size,
+    //    0,
+    //    NULL,
+    //    NULL
+    //);
+    //if (errcode != CL_SUCCESS) {
+    //    printf("An error occured while requesting kernel execution.");
+    //    clReleaseCommandQueue(queue);
+    //    clReleaseKernel(shader_kernel);
+    //    clReleaseProgram(shader);
+    //    clReleaseContext(context);
+    //    clReleaseDevice(gpu);
+    //    exit(1);
+    //}
 
     clReleaseCommandQueue(queue);
     clReleaseKernel(shader_kernel);
