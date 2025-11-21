@@ -24,15 +24,17 @@ Hash 1 answer: `system`
 
 Hash 2 answer: `kerNEl` (Note: Using the newly given hash value)
 
-shracker_serial.rs: (Hash 1)
+shracker_serial: (Hash 1)
 
 > The computation took 174 s
 
-shracker.rs: (Hash 1) (with 8 threads)
+shracker: (Hash 1) (with 8 threads)
 
 > The computation took 73 s
 
 Hash 2 takes about 45 minutes (with 8 threads)
+
+Note: These numbers show the performance with `Mutexes` and not atomics!
 
 These benchmarks were run on a **MediaTek Helio G85** device (4Gb RAM with 2GHz and 1.8GHz max freq cores.)
 These executables for x64 are available in the _Task 2 Submission_ release.
