@@ -1,6 +1,6 @@
 use std::{env::args, thread::JoinHandle, time::Instant};
 
-use shracker::{generate_loop_range1, generate_loop_range2, hash_1_parallel_job, hash_2_parallel_job, solve_hash_parallel};
+use shracker::{hash_1_parallel_job, hash_2_parallel_job, solve_hash_parallel};
 
 fn main() {
     let hash_selector = args().nth(1)
@@ -23,9 +23,9 @@ fn main() {
                             for k in 0..=1 {
                                 hash_1_parallel_job(
                                     &mut join_handles,
-                                    generate_loop_range1(i),
-                                    generate_loop_range1(j),
-                                    generate_loop_range1(k),
+                                    i,
+                                    j,
+                                    k,
                                     &success,
                                     &completion_count
                                 );
@@ -55,9 +55,9 @@ fn main() {
                             for k in 0..=1 {
                                 hash_2_parallel_job(
                                     &mut join_handles,
-                                    generate_loop_range2(i),
-                                    generate_loop_range2(j),
-                                    generate_loop_range2(k),
+                                    i,
+                                    j,
+                                    k,
                                     &success,
                                     &completion_count
                                 );

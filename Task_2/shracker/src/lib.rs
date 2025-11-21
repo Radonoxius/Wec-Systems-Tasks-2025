@@ -43,19 +43,19 @@ pub fn solve_hash_parallel(
     }
 }
 
-pub fn generate_loop_range1(index: u8) -> RangeInclusive<char> {
+pub fn generate_loop_range1(index: u8) -> RangeInclusive<u8> {
     match index {
-        0 => 'a'..='m',
-        1 => 'n'..='z',
+        0 => b'a'..=b'm',
+        1 => b'n'..=b'z',
         _ => panic!("Index can only be a 0 or 1!")
     }
 }
 
 pub fn hash_1_parallel_job(
     join_handles: &mut Vec<JoinHandle<()>>,
-    loop4_range: RangeInclusive<char>,
-    loop5_range: RangeInclusive<char>,
-    loop6_range: RangeInclusive<char>,
+    loop4_range: u8,
+    loop5_range: u8,
+    loop6_range: u8,
     success: &Arc<AtomicBool>,
     completion_count: &Arc<AtomicU64>
 ) {
@@ -65,19 +65,20 @@ pub fn hash_1_parallel_job(
     join_handles.push(
         thread::spawn(
             move || {
-                'outer: for c1 in 'a'..='z' {
-                    for c2 in 'a'..='z' {
-                        for c3 in 'a'..='z' {
-                            for c4 in loop4_range.clone() {
-                                for c5 in loop5_range.clone() {
-                                    for c6 in loop6_range.clone() {
-                                        let mut current_word = String::with_capacity(6);
-                                        current_word.push(c1);
-                                        current_word.push(c2);
-                                        current_word.push(c3);
-                                        current_word.push(c4);
-                                        current_word.push(c5);
-                                        current_word.push(c6);
+                let mut current_word = [0u8; 6];
+
+                'outer: for c1 in b'a'..=b'z' {
+                    for c2 in b'a'..=b'z' {
+                        for c3 in b'a'..=b'z' {
+                            for c4 in generate_loop_range1(loop4_range) {
+                                for c5 in generate_loop_range1(loop5_range) {
+                                    for c6 in generate_loop_range1(loop6_range) {
+                                        current_word[0] = c1;
+                                        current_word[1] = c2;
+                                        current_word[2] = c3;
+                                        current_word[3] = c4;
+                                        current_word[4] = c5;
+                                        current_word[5] = c6;
 
                                         completion_count1.fetch_add(1, Ordering::Relaxed);
 
@@ -86,8 +87,11 @@ pub fn hash_1_parallel_job(
                                         }
 
                                         if equals_hash_1(&current_word) {
-                                            println!("\nThe secret word is: {}", &current_word);
-                                            success1.store(true, Ordering::Release);
+                                            println!(
+                                                "\nThe secret word is: {}",
+                                                String::from_utf8_lossy(&current_word)
+                                            );
+                                            success1.store(true, Ordering::Relaxed);
                                             break 'outer;
                                         }
                                     }
@@ -96,7 +100,7 @@ pub fn hash_1_parallel_job(
 
                             print!(
                                 "\rTheoretical progress: {}/308915776",
-                                completion_count1.load(Ordering::Acquire)
+                                completion_count1.load(Ordering::Relaxed)
                             );
                         }
                     }
@@ -106,15 +110,15 @@ pub fn hash_1_parallel_job(
     );
 }
 
-pub fn hash_2_range() -> [char; 52] {
-    let mut range = ['a'; 52];
+pub fn hash_2_range() -> [u8; 52] {
+    let mut range = [b'a'; 52];
 
     let mut idx = 0;
-    for ci in 'a'..='z' {
+    for ci in b'a'..=b'z' {
         range[idx] = ci;
         idx += 1;
     }
-    for cj in 'A'..='Z' {
+    for cj in b'A'..=b'Z' {
         range[idx] = cj;
         idx +=1;
     }
@@ -122,19 +126,19 @@ pub fn hash_2_range() -> [char; 52] {
     range
 }
 
-pub fn generate_loop_range2(index: u8) -> RangeInclusive<char> {
+pub fn generate_loop_range2(index: u8) -> RangeInclusive<u8> {
     match index {
-        0 => 'a'..='z',
-        1 => 'A'..='Z',
+        0 => b'a'..=b'z',
+        1 => b'A'..=b'Z',
         _ => panic!("Index can only be a 0 or 1!")
     }
 }
 
 pub fn hash_2_parallel_job(
     join_handles: &mut Vec<JoinHandle<()>>,
-    loop4_range: RangeInclusive<char>,
-    loop5_range: RangeInclusive<char>,
-    loop6_range: RangeInclusive<char>,
+    loop4_range: u8,
+    loop5_range: u8,
+    loop6_range: u8,
     success: &Arc<AtomicBool>,
     completion_count: &Arc<AtomicU64>
 ) {
@@ -144,19 +148,20 @@ pub fn hash_2_parallel_job(
     join_handles.push(
         thread::spawn(
             move || {
+                let mut current_word = [0u8; 6];
+
                 'outer: for c1 in hash_2_range() {
                     for c2 in hash_2_range() {
                         for c3 in hash_2_range() {
-                            for c4 in loop4_range.clone() {
-                                for c5 in loop5_range.clone() {
-                                    for c6 in loop6_range.clone() {
-                                        let mut current_word = String::with_capacity(6);
-                                        current_word.push(c1);
-                                        current_word.push(c2);
-                                        current_word.push(c3);
-                                        current_word.push(c4);
-                                        current_word.push(c5);
-                                        current_word.push(c6);
+                            for c4 in generate_loop_range2(loop4_range) {
+                                for c5 in generate_loop_range2(loop5_range) {
+                                    for c6 in generate_loop_range2(loop6_range) {
+                                        current_word[0] = c1;
+                                        current_word[1] = c2;
+                                        current_word[2] = c3;
+                                        current_word[3] = c4;
+                                        current_word[4] = c5;
+                                        current_word[5] = c6;
 
                                         completion_count1.fetch_add(1, Ordering::Relaxed);
 
@@ -165,8 +170,11 @@ pub fn hash_2_parallel_job(
                                         }
 
                                         if equals_hash_2(&current_word) {
-                                            println!("\nThe secret word is: {}", &current_word);
-                                            success1.store(true, Ordering::Release);
+                                            println!(
+                                                "\nThe secret word is: {}",
+                                                String::from_utf8_lossy(&current_word)
+                                            );
+                                            success1.store(true, Ordering::Relaxed);
                                             break 'outer;
                                         }
                                     }
@@ -175,7 +183,7 @@ pub fn hash_2_parallel_job(
 
                             print!(
                                 "\rTheoretical progress: {}/19770609664",
-                                completion_count1.load(Ordering::Acquire)
+                                completion_count1.load(Ordering::Relaxed)
                             );
                         }
                     }
@@ -187,16 +195,16 @@ pub fn hash_2_parallel_job(
 
 //'system' is the answer :-)
 //HASH1 is obtained from 6 letter word that has lowercase alphabets only
-pub fn equals_hash_1(string: &String) -> bool {
+pub fn equals_hash_1(string: &[u8]) -> bool {
     hex!(
         "bbc5e661e106c6dcd8dc6dd186454c2fcba3c710fb4d8e71a60c93eaf077f073"
-    )[..] == Sha256::digest(&string.as_bytes())[..]
+    )[..] == Sha256::digest(string)[..]
 }
 
 //'kerNEl' is the answer :-)
 //HASH2 is obtained from 6 letter word that has both lower and upper case alphabets
-pub fn equals_hash_2(string: &String) -> bool {
+pub fn equals_hash_2(string: &[u8; 6]) -> bool {
     hex!(
         "502eadebf906967ad022cb7b4553b867f245770595e94df8d475b5a48eaaf434"
-    )[..] == Sha256::digest(&string.as_bytes())[..]
+    )[..] == Sha256::digest(string)[..]
 }

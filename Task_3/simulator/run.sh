@@ -1,9 +1,9 @@
 #! /bin/bash
 
 cd native/build
-clang -c ../init.c -g #-O3
+clang-19 -c ../init.c -g #-O3
 
-ar -rcs libsimulator.a init.o
+llvm-ar-19 -rcs libsimulator.a init.o
 rm init.o
 
 cd ../..

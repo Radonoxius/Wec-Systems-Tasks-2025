@@ -51,8 +51,8 @@ uint64_t gpu_execute(
         exit(1);
     }
 
-    cl_program shader;
-    clCreateProgramWithSource(context, 1, &shader_src, &shader_len, &errcode);
+    cl_program shader =
+        clCreateProgramWithSource(context, 1, &shader_src, &shader_len, &errcode);
     if (errcode != CL_SUCCESS) {
         printf("An error occured while creating the shader.\n");
         clReleaseContext(context);
@@ -64,20 +64,28 @@ uint64_t gpu_execute(
         shader,
         1,
         &gpu,
-        NULL,
+        "-cl-mad-enable -cl-no-signed-zeros -cl-std=CL3.0 -Wall -Werror",
         NULL,
         NULL
     );
     if (errcode != CL_SUCCESS) {
-        printf("An error occured while compiling/linking the shader.\n");
+        printf("An error occured while compiling/linking the shader.\n\n");
+
+        char* log;
+        size_t log_len;
+        clGetProgramBuildInfo(shader, gpu, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_len);
+        log = (char*) malloc(log_len);
+        clGetProgramBuildInfo(shader, gpu, CL_PROGRAM_BUILD_LOG, log_len, log, NULL);
+        printf("%s\n", log);
+
+        free(log);
         clReleaseProgram(shader);
         clReleaseContext(context);
         clReleaseDevice(gpu);
         exit(1);
     }
 
-    cl_kernel shader_kernel;
-    clCreateKernel(shader, "solver", &errcode);
+    cl_kernel shader_kernel = clCreateKernel(shader, "solver", &errcode);
     if (errcode != CL_SUCCESS) {
         printf("An error occured while creating the shader kernel.\n");
         clReleaseProgram(shader);
@@ -86,8 +94,7 @@ uint64_t gpu_execute(
         exit(1);
     }
 
-    cl_command_queue queue;
-    clCreateCommandQueue(context, gpu, 0, &errcode);
+    cl_command_queue queue = clCreateCommandQueue(context, gpu, 0, &errcode);
     if (errcode != CL_SUCCESS) {
         printf("An error occured while creating the gpu command queue.\n");
         clReleaseKernel(shader_kernel);

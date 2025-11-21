@@ -23,7 +23,7 @@ fn main() {
 
                         *count_ref += 1;
 
-                        if equals_hash_1(&current_word) {
+                        if equals_hash_1(current_word.as_bytes()) {
                             println!("\nThe secret word is: {}", &current_word);
                             *success_flag_ref = true;
                             break 'inner;
