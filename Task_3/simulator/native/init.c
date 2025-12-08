@@ -31,7 +31,7 @@ uint64_t simulate(
     cl_platform_id platform;
     cl_int errcode;
 
-    errcode = clGetPlatformIDs(
+    clGetPlatformIDs(
         1,
         &platform,
         nullptr
@@ -39,7 +39,7 @@ uint64_t simulate(
     
     cl_device_id gpu;
 
-    errcode = clGetDeviceIDs(
+    clGetDeviceIDs(
         platform,
         CL_DEVICE_TYPE_GPU,
         1,
@@ -53,65 +53,33 @@ uint64_t simulate(
         &gpu,
         nullptr,
         nullptr,
-        &errcode
+        nullptr
     );
 
     cl_program shader =
-        clCreateProgramWithSource(context, 1, &shader_src, &shader_len, &errcode);
-    if (errcode != CL_SUCCESS) {
-        printf("An error occured while creating the shader.\n");
-        clReleaseContext(context);
-        clReleaseDevice(gpu);
-        exit(1);
-    }
+        clCreateProgramWithSource(context, 1, &shader_src, &shader_len, nullptr);
 
-    errcode = clBuildProgram(
+    clBuildProgram(
         shader,
         1,
         &gpu,
-        "-cl-mad-enable -cl-std=CL2.0 -Wall -Werror", //-Wall -Werror
+        "-cl-mad-enable -cl-std=CL2.0 -Wall -Werror",
         nullptr,
         nullptr
     );
-    if (errcode != CL_SUCCESS) {
-        printf("An error occured while compiling/linking the shader.\n\n");
 
-        char* log;
-        size_t log_len;
-        clGetProgramBuildInfo(shader, gpu, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_len);
-        log = (char*) malloc(log_len);
-        clGetProgramBuildInfo(shader, gpu, CL_PROGRAM_BUILD_LOG, log_len, log, nullptr);
-        printf("%s\n", log);
-
-        free(log);
-        clReleaseProgram(shader);
-        clReleaseContext(context);
-        clReleaseDevice(gpu);
-        exit(1);
-    }
-
-    cl_kernel shader_kernel = clCreateKernel(shader, "simulate", &errcode);
-    if (errcode != CL_SUCCESS) {
-        printf("An error occured while creating the shader kernel.\n");
-        clReleaseProgram(shader);
-        clReleaseContext(context);
-        clReleaseDevice(gpu);
-        exit(1);
-    }
+    cl_kernel shader_kernel = clCreateKernel(shader, "simulate", nullptr);
 
     cl_command_queue queue = clCreateCommandQueueWithProperties(
         context,
         gpu,
         nullptr,
-        &errcode
+        nullptr
     );
 
     uint64_t global_work_size[2] = {tree_grid_size, tree_grid_size};
     uint64_t local_work_size[2] = {tree_grid_size, 1};
     uint64_t offset[2] = {0, 0};
-
-    uint64_t total_grid_size =
-        tree_grid_size * tree_grid_size + 4 * tree_grid_size + 4;
 
     uint32_t* dimension = (uint32_t*) clSVMAlloc(
         context,
@@ -122,6 +90,9 @@ uint64_t simulate(
     clEnqueueSVMMap(queue, CL_TRUE, CL_MAP_WRITE, dimension, sizeof(uint32_t), 0, nullptr, nullptr);
     *dimension = tree_grid_size;
     clEnqueueSVMUnmap(queue, dimension, 0, nullptr, nullptr);
+
+    uint64_t total_grid_size =
+        tree_grid_size * tree_grid_size + 4 * tree_grid_size + 4;
 
     uint8_t* tree_grid = (uint8_t*) clSVMAlloc(
         context,
@@ -147,34 +118,51 @@ uint64_t simulate(
         sizeof(uint32_t),
         0
     );
-    reset_done(queue, done);
 
     clSetKernelArgSVMPointer(shader_kernel, 0, dimension);
     clSetKernelArgSVMPointer(shader_kernel, 1, tree_grid);
     clSetKernelArgSVMPointer(shader_kernel, 2, randoms);
     clSetKernelArgSVMPointer(shader_kernel, 3, next_tree_grid);
     clSetKernelArgSVMPointer(shader_kernel, 4, done);
-    
-    errcode = clEnqueueNDRangeKernel(
-        queue,
-        shader_kernel,
-        2,
-        offset,
-        global_work_size,
-        local_work_size,
-        0,
-        nullptr,
-        nullptr
-    );
-    if (errcode != CL_SUCCESS) {
-        printf("An error occured while requesting kernel execution.");
-        clReleaseCommandQueue(queue);
-        clReleaseKernel(shader_kernel);
-        clReleaseProgram(shader);
-        clReleaseContext(context);
-        clReleaseDevice(gpu);
-        exit(1);
-    }
+
+    do {
+        reset_done(queue, done);
+
+        errcode = clEnqueueNDRangeKernel(
+            queue,
+            shader_kernel,
+            2,
+            offset,
+            global_work_size,
+            local_work_size,
+            0,
+            nullptr,
+            nullptr
+        );
+        if (errcode != CL_SUCCESS) {
+            printf("An error occured while kernel execution.\n");
+            clReleaseCommandQueue(queue);
+            clReleaseKernel(shader_kernel);
+            clReleaseProgram(shader);
+            clReleaseContext(context);
+            clReleaseDevice(gpu);
+            exit(1);
+        }
+        
+        clEnqueueSVMMemcpy(
+            queue,
+            CL_FALSE,
+            tree_grid,
+            next_tree_grid,
+            total_grid_size,
+            0,
+            nullptr,
+            nullptr
+        );
+        clFinish(queue);
+
+        epoch_count += 1;
+    } while (is_done(queue, done));
 
     clSVMFree(context, done);
     clSVMFree(context, next_tree_grid);

@@ -1,6 +1,6 @@
 use simulator::{ffi::simulate, read_shader};
 
-const TREE_GRID_SIZE: u32 = 5;
+const TREE_GRID_SIZE: u32 = 50;
 
 fn main() {
     let shader_src = read_shader();

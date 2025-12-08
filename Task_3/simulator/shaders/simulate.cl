@@ -4,14 +4,10 @@
  * 2 = burnt
  */
 
-/* Randoms is an NxN grid of
- * 1s and 0s
- */
-
 kernel void simulate(
-    global uint *dimension, //N
+    global const uint *dimension, //N
     global const uchar *tree_grid, //N+2 x N+2
-    global uchar *randoms, //N x N
+    global const uchar *randoms, //N x N, p(1) = 0.25, p(0) = 0.75
     global uchar *next_tree_grid, //N+2 x N+2
     volatile global uint *done //0 means no trees left on fire
 ) {
@@ -28,14 +24,15 @@ kernel void simulate(
         private uchar3 hi = vload3(actual_idx + (*dimension + 1), tree_grid);
         private size_t relative_idx = *dimension * y + x;
 
-        //Tree can burn if this is 0
-        private uchar cannot_burn = (
+        //Tree can burn if this is 1
+        private uchar can_burn = !(
             lo.s0 & lo.s1 & lo.s2 &
             mid.s0 & mid.s2 &
             hi.s0 & hi.s1 & hi.s2
         );
 
-        next_tree_grid[actual_idx] = !randoms[relative_idx] | cannot_burn;
+        //Tree catches fire if randoms is 1 and if can_burn is 1
+        next_tree_grid[actual_idx] = randoms[relative_idx] & can_burn;
     }
 
     if(next_tree_grid[actual_idx] == 0)
