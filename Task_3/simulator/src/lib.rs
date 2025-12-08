@@ -2,7 +2,7 @@ use std::{fs::OpenOptions, io::Read};
 
 pub mod ffi;
 
-const SHADER_PATH: &str = "shaders/solver.cl";
+const SHADER_PATH: &str = "shaders/simulate.cl";
 
 pub fn read_shader() -> Vec<u8> {
     let mut src = Vec::new();

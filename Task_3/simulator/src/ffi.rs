@@ -1,8 +1,8 @@
 #[link(name = "simulator")]
 unsafe extern "C" {
-    pub fn gpu_execute(
+    pub fn simulate(
         shader_src: *const u8,
         shader_len: u64,
-        tree_grid_size: u64
+        tree_grid_size: u32
     ) -> u64;
 }

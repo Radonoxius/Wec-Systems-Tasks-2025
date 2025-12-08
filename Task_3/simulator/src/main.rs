@@ -1,12 +1,12 @@
-use simulator::{ffi::gpu_execute, read_shader};
+use simulator::{ffi::simulate, read_shader};
 
-const TREE_GRID_SIZE: u64 = 5;
+const TREE_GRID_SIZE: u32 = 5;
 
 fn main() {
     let shader_src = read_shader();
 
     let epoch_count = unsafe {
-        gpu_execute(
+        simulate(
             shader_src.as_ptr(),
             shader_src.len() as u64,
             TREE_GRID_SIZE
