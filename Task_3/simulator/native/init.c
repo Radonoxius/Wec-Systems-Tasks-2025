@@ -3,6 +3,8 @@
 #include<stdio.h>
 #include<CL/cl.h>
 
+uint8_t* TEMP;
+
 void reset_done(cl_command_queue queue, uint32_t* done) {
     clEnqueueSVMMap(queue, CL_TRUE, CL_MAP_WRITE, done, sizeof(uint32_t), 0, nullptr, nullptr);
     *done = 0;
@@ -21,10 +23,47 @@ bool is_done(cl_command_queue queue, uint32_t* done) {
     return result;
 }
 
+void get_randoms(cl_command_queue queue, uint8_t *buffer, size_t len) {
+    clEnqueueSVMMap(queue, CL_TRUE, CL_MAP_WRITE, buffer, len, 0, nullptr, nullptr);
+
+    FILE *fp = fopen("/dev/random", "rb");
+    fread(TEMP, sizeof(uint8_t), len, fp);
+    fclose(fp);
+
+    for (size_t i = 0; i < len; i++)
+        TEMP[i] = (TEMP[i] < 64) ? 1 : 0;
+
+    for (size_t i = 0; i < len; i++)
+        buffer[i] = TEMP[i];
+
+    clEnqueueSVMUnmap(queue, buffer, 0, nullptr, nullptr);
+}
+
+//factor = 255 means all trees start off in alive state
+//factor = 0 means all trees start off in burning state
+void initialize(cl_command_queue queue, uint8_t *buffer, size_t len, uint8_t factor) {
+    clEnqueueSVMMap(queue, CL_TRUE, CL_MAP_WRITE, buffer, len, 0, nullptr, nullptr);
+
+    FILE *fp = fopen("/dev/random", "rb");
+    fread(TEMP, sizeof(uint8_t), len, fp);
+    fclose(fp);
+
+    for (size_t i = 0; i < len; i++)
+        TEMP[i] = (TEMP[i] <= factor) ? 1 : 0;
+
+    for (size_t i = 0; i < len; i++)
+        buffer[i] = TEMP[i];
+
+    clEnqueueSVMUnmap(queue, buffer, 0, nullptr, nullptr);
+}
+
+//factor = 255 means all trees start off in alive state
+//factor = 0 means all trees start off in burning state
 uint64_t simulate(
     const char *shader_src,
     const uint64_t shader_len,
-    const uint32_t tree_grid_size
+    const uint32_t tree_grid_size,
+    const uint8_t starting_factor
 ) {
     uint64_t epoch_count = 0;
 
@@ -91,13 +130,15 @@ uint64_t simulate(
     *dimension = tree_grid_size;
     clEnqueueSVMUnmap(queue, dimension, 0, nullptr, nullptr);
 
-    uint64_t total_grid_size =
+    uint64_t extended_grid_size =
         tree_grid_size * tree_grid_size + 4 * tree_grid_size + 4;
+
+    TEMP = malloc(extended_grid_size);
 
     uint8_t* tree_grid = (uint8_t*) clSVMAlloc(
         context,
         CL_MEM_WRITE_ONLY,
-        sizeof(uint8_t) * total_grid_size,
+        sizeof(uint8_t) * extended_grid_size,
         0
     );
     uint8_t* randoms = (uint8_t*) clSVMAlloc(
@@ -109,7 +150,7 @@ uint64_t simulate(
     uint8_t* next_tree_grid = (uint8_t*) clSVMAlloc(
         context,
         CL_MEM_WRITE_ONLY,
-        sizeof(uint8_t) * total_grid_size,
+        sizeof(uint8_t) * extended_grid_size,
         0
     );
     uint32_t* done = (uint32_t*) clSVMAlloc(
@@ -127,6 +168,7 @@ uint64_t simulate(
 
     do {
         reset_done(queue, done);
+        get_randoms(queue, randoms, tree_grid_size * tree_grid_size);
 
         errcode = clEnqueueNDRangeKernel(
             queue,
@@ -154,7 +196,7 @@ uint64_t simulate(
             CL_FALSE,
             tree_grid,
             next_tree_grid,
-            total_grid_size,
+            extended_grid_size,
             0,
             nullptr,
             nullptr
@@ -162,13 +204,15 @@ uint64_t simulate(
         clFinish(queue);
 
         epoch_count += 1;
-    } while (is_done(queue, done));
+    } while (!is_done(queue, done));
 
     clSVMFree(context, done);
     clSVMFree(context, next_tree_grid);
     clSVMFree(context, randoms);
     clSVMFree(context, tree_grid);
     clSVMFree(context, dimension);
+
+    free(TEMP);
 
     clReleaseCommandQueue(queue);
     clReleaseKernel(shader_kernel);
