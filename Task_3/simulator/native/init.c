@@ -23,9 +23,7 @@ bool is_done(cl_command_queue queue, uint32_t* done) {
     return result;
 }
 
-void get_randoms(cl_command_queue queue, uint8_t *buffer, size_t len) {
-    clEnqueueSVMMap(queue, CL_TRUE, CL_MAP_WRITE, buffer, len, 0, nullptr, nullptr);
-
+void get_randoms(cl_command_queue queue, uint8_t *buffer, const size_t len) {
     FILE *fp = fopen("/dev/random", "rb");
     fread(TEMP, sizeof(uint8_t), len, fp);
     fclose(fp);
@@ -33,17 +31,16 @@ void get_randoms(cl_command_queue queue, uint8_t *buffer, size_t len) {
     for (size_t i = 0; i < len; i++)
         TEMP[i] = (TEMP[i] < 64) ? 1 : 0;
 
-    for (size_t i = 0; i < len; i++)
-        buffer[i] = TEMP[i];
-
-    clEnqueueSVMUnmap(queue, buffer, 0, nullptr, nullptr);
+    clEnqueueSVMMemcpy(queue, CL_FALSE, buffer, TEMP, len, 0, nullptr, nullptr);
 }
 
-//factor = 255 means all trees start off in alive state
-//factor = 0 means all trees start off in burning state
-void initialize(cl_command_queue queue, uint8_t *buffer, size_t len, uint8_t factor) {
-    clEnqueueSVMMap(queue, CL_TRUE, CL_MAP_WRITE, buffer, len, 0, nullptr, nullptr);
-
+void initialize(
+    cl_command_queue queue,
+    uint8_t *buffer,
+    const size_t len,
+    const uint32_t tree_grid_size,
+    const uint8_t factor
+) {
     FILE *fp = fopen("/dev/random", "rb");
     fread(TEMP, sizeof(uint8_t), len, fp);
     fclose(fp);
@@ -51,10 +48,26 @@ void initialize(cl_command_queue queue, uint8_t *buffer, size_t len, uint8_t fac
     for (size_t i = 0; i < len; i++)
         TEMP[i] = (TEMP[i] <= factor) ? 1 : 0;
 
-    for (size_t i = 0; i < len; i++)
-        buffer[i] = TEMP[i];
+    for (size_t i = 0; i < tree_grid_size + 2; i++) {
+        TEMP[i] = 1;
+        TEMP[(tree_grid_size + 2) * (tree_grid_size + 1) + i] = 1;
+    }
 
-    clEnqueueSVMUnmap(queue, buffer, 0, nullptr, nullptr);
+    for (size_t i = 1; i <= tree_grid_size; i++) {
+        TEMP[i * (tree_grid_size + 2)] = 1;
+        TEMP[i * (tree_grid_size + 2) + tree_grid_size + 1] = 1;
+    }
+
+    printf("At start:\n");
+    for (size_t j = 0; j < tree_grid_size + 2; j++) {
+        for (size_t i = 0; i < tree_grid_size + 2; i++) {
+            printf("%d", TEMP[j * (tree_grid_size + 2) + i]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+
+    clEnqueueSVMMemcpy(queue, CL_FALSE, buffer, TEMP, len, 0, nullptr, nullptr);
 }
 
 //factor = 255 means all trees start off in alive state
@@ -68,7 +81,6 @@ uint64_t simulate(
     uint64_t epoch_count = 0;
 
     cl_platform_id platform;
-    cl_int errcode;
 
     clGetPlatformIDs(
         1,
@@ -122,7 +134,7 @@ uint64_t simulate(
 
     uint32_t* dimension = (uint32_t*) clSVMAlloc(
         context,
-        CL_MEM_WRITE_ONLY,
+        CL_MEM_READ_ONLY,
         sizeof(uint32_t),
         0
     );
@@ -137,13 +149,15 @@ uint64_t simulate(
 
     uint8_t* tree_grid = (uint8_t*) clSVMAlloc(
         context,
-        CL_MEM_WRITE_ONLY,
+        CL_MEM_READ_ONLY,
         sizeof(uint8_t) * extended_grid_size,
         0
     );
+    initialize(queue, tree_grid, extended_grid_size, tree_grid_size, starting_factor);
+
     uint8_t* randoms = (uint8_t*) clSVMAlloc(
         context,
-        CL_MEM_WRITE_ONLY,
+        CL_MEM_READ_ONLY,
         sizeof(uint8_t) * tree_grid_size * tree_grid_size,
         0
     );
@@ -153,6 +167,10 @@ uint64_t simulate(
         sizeof(uint8_t) * extended_grid_size,
         0
     );
+    for (size_t i = 0; i < extended_grid_size; i++)
+        TEMP[i] = 1;
+    clEnqueueSVMMemcpy(queue, CL_TRUE, next_tree_grid, TEMP, extended_grid_size, 0, nullptr, nullptr);
+
     uint32_t* done = (uint32_t*) clSVMAlloc(
         context,
         CL_MEM_READ_WRITE,
@@ -170,7 +188,7 @@ uint64_t simulate(
         reset_done(queue, done);
         get_randoms(queue, randoms, tree_grid_size * tree_grid_size);
 
-        errcode = clEnqueueNDRangeKernel(
+        clEnqueueNDRangeKernel(
             queue,
             shader_kernel,
             2,
@@ -181,15 +199,6 @@ uint64_t simulate(
             nullptr,
             nullptr
         );
-        if (errcode != CL_SUCCESS) {
-            printf("An error occured while kernel execution.\n");
-            clReleaseCommandQueue(queue);
-            clReleaseKernel(shader_kernel);
-            clReleaseProgram(shader);
-            clReleaseContext(context);
-            clReleaseDevice(gpu);
-            exit(1);
-        }
         
         clEnqueueSVMMemcpy(
             queue,
@@ -201,10 +210,21 @@ uint64_t simulate(
             nullptr,
             nullptr
         );
-        clFinish(queue);
+
+        printf("\n");
+        clEnqueueSVMMap(queue, CL_TRUE, CL_MAP_READ, next_tree_grid, extended_grid_size, 0, nullptr, nullptr);
+        for (size_t j = 0; j < tree_grid_size + 2; j++) {
+            for (size_t i = 0; i < tree_grid_size + 2; i++) {
+                printf("%d", next_tree_grid[j * (tree_grid_size + 2) + i]);
+            }
+            printf("\n");
+        }
+        clEnqueueSVMUnmap(queue, next_tree_grid, 0, nullptr, nullptr);
+        printf("\n");
 
         epoch_count += 1;
     } while (!is_done(queue, done));
+    clFinish(queue);
 
     clSVMFree(context, done);
     clSVMFree(context, next_tree_grid);

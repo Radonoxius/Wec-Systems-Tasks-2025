@@ -1,10 +1,10 @@
 use simulator::{ffi::simulate, read_shader};
 
-const TREE_GRID_SIZE: u32 = 50;
+const TREE_GRID_SIZE: u32 = 7;
 
 //starting_factor = 255 means all trees start off in alive state
 //starting_factor = 0 means all trees start off in burning state
-const STARTING_FACTOR: u8 = 100;
+const STARTING_FACTOR: u8 = 220;
 
 fn main() {
     let shader_src = read_shader();

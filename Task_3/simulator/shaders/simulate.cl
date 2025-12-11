@@ -1,7 +1,7 @@
-/* Conventions:
+/* Tree grid Conventions:
  * 0 = on fire
  * 1 = alive
- * 2 = burnt
+ * 3 = burnt
  */
 
 kernel void simulate(
@@ -9,16 +9,16 @@ kernel void simulate(
     global const uchar *tree_grid, //N+2 x N+2
     global const uchar *randoms, //N x N, p(1) = 0.25, p(0) = 0.75
     global uchar *next_tree_grid, //N+2 x N+2
-    volatile global uint *done //0 means no trees left on fire, simulation ends
+    volatile global atomic_uint *done //0 means no trees left on fire, simulation ends
 ) {
-    private size_t x = get_global_id(0);
-    private size_t y = get_global_id(1);
+    private uint x = get_global_id(0);
+    private uint y = get_global_id(1);
 
-    private size_t idx = *dimension * y + x;
-    private size_t extended_idx = idx + *dimension + (y << 1) + 3;
+    private uint idx = *dimension * y + x;
+    private uint extended_idx = idx + *dimension + (y << 1) + 3;
 
-    if(tree_grid[extended_idx] == 0 || tree_grid[extended_idx] == 2) {
-        next_tree_grid[extended_idx] = 2;
+    if(tree_grid[extended_idx] == 0 || tree_grid[extended_idx] == 3) {
+        next_tree_grid[extended_idx] = 3;
     }
     else {
         private uchar3 lo = vload3(extended_idx - (*dimension + 3), tree_grid);
@@ -34,6 +34,12 @@ kernel void simulate(
 
         //Tree catches fire if randoms is 1 and if can_burn is 1
         next_tree_grid[extended_idx] = !(randoms[idx] & can_burn);
-        atomic_add(done, randoms[idx] & can_burn);
+        
+        atomic_fetch_add_explicit(
+            done,
+            randoms[idx] & can_burn,
+            memory_order_relaxed,
+            memory_scope_work_item
+        );
     }
 }
