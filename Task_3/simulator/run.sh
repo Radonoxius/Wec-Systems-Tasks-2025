@@ -1,5 +1,6 @@
 #! /bin/bash
 
+mkdir native/build 2> /dev/null
 cd native/build
 clang-19 --std=c23 -c ../init.c -Wall -Werror -O3
 

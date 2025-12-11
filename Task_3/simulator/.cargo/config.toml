@@ -1,2 +1,2 @@
 [build]
-rustflags = ["-Lnative/build", "-lsimulator", "-lOpenCL", "-C", "lto=true", "-C", "embed-bitcode=yes"]
+rustflags = ["-Lnative/build", "-lsimulator", "-lOpenCL"]
