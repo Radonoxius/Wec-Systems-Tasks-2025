@@ -165,13 +165,13 @@ uint64_t simulate(
     );
     
     //Device initialisation stuff...
-    cl_device_id gpu;
+    cl_device_id device;
 
     clGetDeviceIDs(
         platform,
         CL_DEVICE_TYPE_GPU,
         1,
-        &gpu,
+        &device,
         nullptr
     );
 
@@ -179,7 +179,7 @@ uint64_t simulate(
     cl_context context = clCreateContext(
         nullptr,
         1,
-        &gpu,
+        &device,
         nullptr,
         nullptr,
         nullptr
@@ -198,7 +198,7 @@ uint64_t simulate(
     clBuildProgram(
         shader,
         1,
-        &gpu,
+        &device,
         "-cl-mad-enable -cl-std=CL2.0 -Wall -Werror",
         nullptr,
         nullptr
@@ -208,7 +208,7 @@ uint64_t simulate(
 
     cl_command_queue queue = clCreateCommandQueueWithProperties(
         context,
-        gpu,
+        device,
         nullptr,
         nullptr
     );
@@ -398,7 +398,7 @@ uint64_t simulate(
     clReleaseKernel(shader_kernel);
     clReleaseProgram(shader);
     clReleaseContext(context);
-    clReleaseDevice(gpu);
+    clReleaseDevice(device);
 
     //Result!!!
     return epoch_count;

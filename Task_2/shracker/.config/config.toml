@@ -1,0 +1,5 @@
+[build]
+rustflags = [
+    "-C", "lto=yes",
+    "-C", "embed-bitcode=yes"
+]

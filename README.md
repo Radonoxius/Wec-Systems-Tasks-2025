@@ -1,5 +1,5 @@
 # Wec-Systems-Tasks-2025
-WEC Systems task: Parallel computing with C (includes Rust + FFI as well)
+WEC Systems task: Parallel computing with C (includes a touch of Rust + FFI as well)
 
 ## Task 1
 The task 1 programs were compiled with the highest levels of
@@ -20,21 +20,17 @@ These executables are available in the _Task 1 Submission_ release as well.
 The task 2 programs were compiled with highest levels of
 optimisations applied.
 
-Hash 1 answer: `system`
-
-Hash 2 answer: `kerNEl` (Note: Using the newly given hash value)
-
 shracker_serial: (Hash 1)
 
-> The computation took 174 s
+> The computation took: 82 s
 
 shracker: (Hash 1) (with 8 threads)
 
-> The computation took 73 s
+> The computation took: 14 s
 
-Hash 2 takes about 45 minutes (with 8 threads)
+Hash 2 takes about 15 minutes (with 8 threads)
 
-Note: These numbers show the performance with `Mutexes` and not atomics!
+Note: These numbers show the performance using `atomics`!
 
-These benchmarks were run on a **MediaTek Helio G85** device (4Gb RAM with 2GHz and 1.8GHz max freq cores.)
+These benchmarks were run on **Radxa Rock 5C** (2.4GHz and 1.8GHz max freq cores.)
 These executables for x64 are available in the _Task 2 Submission_ release.
