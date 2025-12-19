@@ -37,8 +37,8 @@ impl Config {
             let starting_factor_res = args_string[2].parse::<u8>();
             let starting_factor: u8;
             if let Err(_) = starting_factor_res {
-                panic!("Second argument (STARTING-FACTOR), MUST be an unsigned 8-bit integer!
-                    NOTE: 255 means all trees start off in alive state,
+                panic!("Second argument (STARTING-FACTOR), MUST be an unsigned 8-bit integer! \
+                    NOTE: 255 means all trees start off in alive state, \
                     0 means all trees start off in burning state."
                 );
             }
