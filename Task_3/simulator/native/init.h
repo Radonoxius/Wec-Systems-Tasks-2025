@@ -223,38 +223,61 @@ cl_device_id choose_device() {
         idx += device_count;
     }
     
-    printf("Supported devices available:\n");
-    for(uint32_t i = 0; i < supported_device_count; i++) {
-        size_t name_len;
-        clGetDeviceInfo(
-            supported_devices[i],
-            CL_DEVICE_NAME,
-            0,
-            nullptr,
-            &name_len
-        );
-        char name[name_len];
-        clGetDeviceInfo(
-            supported_devices[i],
-            CL_DEVICE_NAME,
-            name_len,
-            name,
-            nullptr
-        );
-        printf("%u] %s\n", i + 1, name);
-    }
-    printf("\n");
-
-    printf("Choose device (number): ");
     uint32_t idx2 = 0;
-    scanf("%u", &idx2);
-    if (idx2 < 1) {
-        printf("\nInvalid selection! Input should be 1 or greater than that!\n");
-        exit(1);
+    
+    if (supported_device_count == 1) {
+        return supported_devices[0];
     }
-    else if (idx2 > supported_device_count) {
-        printf("\nInvalid selection! Device number doesnt exist!\n");
-        exit(1);
+    else {
+        printf("Supported devices available:\n");
+        for(uint32_t i = 0; i < supported_device_count; i++) {
+            size_t name_len;
+            clGetDeviceInfo(
+                supported_devices[i],
+                CL_DEVICE_NAME,
+                0,
+                nullptr,
+                &name_len
+            );
+            char name[name_len];
+            clGetDeviceInfo(
+                supported_devices[i],
+                CL_DEVICE_NAME,
+                name_len,
+                name,
+                nullptr
+            );
+        
+            size_t vendor_name_len;
+            clGetDeviceInfo(
+                supported_devices[i],
+                CL_DEVICE_VENDOR,
+                0,
+                nullptr,
+                &vendor_name_len
+            );
+            char vendor_name[vendor_name_len];
+            clGetDeviceInfo(
+                supported_devices[i],
+                CL_DEVICE_VENDOR,
+                vendor_name_len,
+                vendor_name,
+                nullptr
+            );
+            printf("%u] [%s] %s\n", i + 1, vendor_name, name);
+        }
+        printf("\n");
+    
+        printf("Choose device (number): ");
+        scanf("%u", &idx2);
+        if (idx2 < 1) {
+            printf("\nInvalid selection! Input should be 1 or greater than that!\n");
+            exit(1);
+        }
+        else if (idx2 > supported_device_count) {
+            printf("\nInvalid selection! Device number doesnt exist!\n");
+            exit(1);
+        }
     }
     
     return supported_devices[idx2 - 1];
