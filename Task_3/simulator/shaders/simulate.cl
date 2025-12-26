@@ -17,9 +17,9 @@ kernel void simulate(
     private size_t idx = *dimension * y + x;
     private size_t extended_idx = idx + *dimension + (y << 1) + 3;
 
-    if(tree_grid[extended_idx] == 0 || tree_grid[extended_idx] == 3) {
+    if(tree_grid[extended_idx] == 0 || tree_grid[extended_idx] == 3)
         next_tree_grid[extended_idx] = 3;
-    }
+
     else {
         private uchar lo0 = tree_grid[extended_idx - (*dimension + 3)];
         private uchar lo1 = tree_grid[extended_idx - (*dimension + 2)];

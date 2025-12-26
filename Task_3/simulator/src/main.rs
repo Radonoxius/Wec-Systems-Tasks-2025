@@ -19,5 +19,10 @@ fn main() {
         )
     };
 
-    println!("The simulation ended in: {} epochs.", epoch_count);
+    if epoch_count == 1 {
+        println!("The simulation ended in: 1 epoch.");
+    }
+    else {
+        println!("The simulation ended in: {} epochs.", epoch_count);
+    }
 }

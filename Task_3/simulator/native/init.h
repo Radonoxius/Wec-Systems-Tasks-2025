@@ -16,6 +16,9 @@ uint8_t* TEMP;
 //A T-Flip-Flop initialized to 0?
 uint8_t TFF = 0;
 
+//Forest stats: Live, Burning and Dead
+uint64_t STATS[3] = { 0, 0, 0 };
+
 //Resets done to 0
 void reset_done(cl_command_queue queue, uint32_t* done) {
     clEnqueueSVMMap(
@@ -112,7 +115,7 @@ void initialize_trees(
     fclose(fp);
 
     for (size_t i = 0; i < len; i++)
-        TEMP[i] = (TEMP[i] <= factor) ? 1 : 0;
+        TEMP[i] = (TEMP[i] <= factor && TEMP[i] >= 0) ? 1 : 0;
 
     for (size_t i = 0; i < tree_grid_size + 2; i++) {
         TEMP[i] = 3;
@@ -135,6 +138,15 @@ void initialize_trees(
         printf("\n");
     }
 
+    for (size_t j = 0; j < tree_grid_size; j++) {
+        for (size_t i = 0; i < tree_grid_size; i++) {
+            if (TEMP[(j + 1) * (tree_grid_size + 2) + i + 1] == 1)
+                STATS[0] += 1;
+            else if (TEMP[(j + 1) * (tree_grid_size + 2) + i + 1] == 0)
+                STATS[1] += 1;
+        }
+    }
+
     clEnqueueSVMMemcpy(
         queue,
         CL_TRUE,
@@ -147,9 +159,11 @@ void initialize_trees(
     );
 }
 
+//Let the user choose which device runs the simulation
 cl_device_id choose_device() {
     uint32_t platform_count = 0;
     
+    //Get all available OpenCL platforms
     clGetPlatformIDs(0, nullptr, &platform_count);
     cl_platform_id platforms[platform_count];
     if (platform_count == 0) {
@@ -158,74 +172,79 @@ cl_device_id choose_device() {
     }
     clGetPlatformIDs(platform_count, platforms, nullptr);
 
-    uint32_t supported_platform_count = 0;
-    cl_platform_id supported_platforms[platform_count];
-
-    uint32_t supported_device_count = 0;
+    uint32_t total_device_count = 0;
+    //Get total device count on the host system
     for(uint32_t i = 0; i < platform_count; i++) {
-        size_t version_data_len;
-        clGetPlatformInfo(
+        uint32_t device_count = 0;
+        clGetDeviceIDs(
             platforms[i],
-            CL_PLATFORM_VERSION,
+            CL_DEVICE_TYPE_ALL,
             0,
             nullptr,
-            &version_data_len
+            &device_count
         );
-        char version_data[version_data_len];
-        clGetPlatformInfo(
-            platforms[i],
-            CL_PLATFORM_VERSION,
-            version_data_len,
-            version_data,
-            nullptr
-        );
-
-        if ((uint8_t) (version_data[7] - '0') >= 2) {
-            supported_platforms[supported_platform_count] = platforms[i];
-
-            uint32_t device_count = 0;
-            clGetDeviceIDs(
-                supported_platforms[supported_platform_count],
-                CL_DEVICE_TYPE_ALL,
-                0,
-                nullptr,
-                &device_count
-            );
-            supported_device_count += device_count;
-
-            supported_platform_count++;
-        }
+        total_device_count += device_count;
     }
-    if (supported_device_count == 0) {
-        printf("No supported OpenCL devices found! Simulation aborted!\n");
+    if (total_device_count == 0) {
+        printf("No OpenCL devices found! Simulation aborted!\n");
         exit(0);
     }
     
-    cl_device_id supported_devices[supported_device_count];
+    cl_device_id all_devices[total_device_count];
     uint32_t idx = 0;
-    for (uint32_t i = 0; i < supported_platform_count; i++) {
+    //Get all devices
+    for (uint32_t i = 0; i < platform_count; i++) {
         uint32_t device_count = 0;
         clGetDeviceIDs(
-            supported_platforms[i],
+            platforms[i],
             CL_DEVICE_TYPE_ALL,
             0,
             nullptr,
             &device_count
         );
         clGetDeviceIDs(
-            supported_platforms[i],
+            platforms[i],
             CL_DEVICE_TYPE_ALL,
             device_count,
-            &supported_devices[idx],
+            &all_devices[idx],
             nullptr
         );
 
         idx += device_count;
     }
+
+    uint32_t supported_device_count = 0;
+    cl_device_id supported_devices[total_device_count];
+    //Filter out devices that dont support OpenCLv2+
+    for (uint32_t i = 0; i < total_device_count; i++) {
+        size_t version_data_len;
+        clGetDeviceInfo(
+            all_devices[i],
+            CL_DEVICE_VERSION,
+            0,
+            nullptr,
+            &version_data_len
+        );
+        char version_data[version_data_len];
+        clGetDeviceInfo(
+            all_devices[i],
+            CL_DEVICE_VERSION,
+            version_data_len,
+            version_data,
+            nullptr
+        );
+
+        if ((uint8_t) (version_data[7] - '0') >= 2) {
+            supported_devices[supported_device_count] = all_devices[i];
+            supported_device_count++;
+        }
+    }
     
-    uint32_t idx2 = 0;
-    
-    if (supported_device_count == 1) {
+    if (supported_device_count == 0) {
+        printf("No supported OpenCL devices found! Simulation aborted!\n");
+        exit(0);
+    }
+    else if (supported_device_count == 1) {
         return supported_devices[0];
     }
     else {
@@ -268,6 +287,7 @@ cl_device_id choose_device() {
         }
         printf("\n");
     
+        uint32_t idx2 = 0;
         printf("Choose device (number): ");
         scanf("%u", &idx2);
         if (idx2 < 1) {
@@ -278,7 +298,7 @@ cl_device_id choose_device() {
             printf("\nInvalid selection! Device number doesnt exist!\n");
             exit(1);
         }
+        else
+            return supported_devices[idx2 - 1];
     }
-    
-    return supported_devices[idx2 - 1];
 }

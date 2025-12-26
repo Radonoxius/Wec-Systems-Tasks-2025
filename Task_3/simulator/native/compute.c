@@ -23,6 +23,40 @@ uint64_t simulate(
         nullptr
     );
 
+    size_t platform_name_len;
+    clGetPlatformInfo(
+        platform,
+        CL_PLATFORM_NAME,
+        0,
+        nullptr,
+        &platform_name_len
+    );
+    char platform_name[platform_name_len];
+    clGetPlatformInfo(
+        platform,
+        CL_PLATFORM_NAME,
+        platform_name_len,
+        platform_name,
+        nullptr
+    );
+    size_t device_name_len;
+    clGetDeviceInfo(
+        device,
+        CL_DEVICE_NAME,
+        0,
+        nullptr,
+        &device_name_len
+    );
+    char device_name[device_name_len];
+    clGetDeviceInfo(
+        device,
+        CL_DEVICE_NAME,
+        device_name_len,
+        device_name,
+        nullptr
+    );
+    printf("Simulating on: [%s] %s!\n\n", platform_name, device_name);
+
     //Device initialisation stuff...
     cl_context context = clCreateContext(
         nullptr,
@@ -223,7 +257,6 @@ uint64_t simulate(
         //and increment!
         epoch_count += 1;
     } while (!is_done(queue, done));
-    clFinish(queue);
 
     //Stop the timer! We're done!
     clock_gettime(CLOCK_MONOTONIC, &time);
@@ -232,6 +265,52 @@ uint64_t simulate(
         (uint64_t) time.tv_nsec
     );
     printf("Simulation finished in: %lums.\n", (t2 - t1) / 1'000'000);
+
+    printf("\nStats:\n");
+    printf("Initial: Alive: %lu, Burning: %lu, Dead: 0\n", STATS[0], STATS[1]);
+    STATS[0] = 0;
+    STATS[1] = 0;
+
+    clEnqueueSVMMap(
+        queue,
+        CL_TRUE,
+        CL_MAP_READ,
+        get_tree_grid(tree_grid, next_tree_grid),
+        extended_grid_size,
+        0,
+        nullptr,
+        nullptr
+    );
+    for (size_t j = 0; j < tree_grid_size; j++) {
+        for (size_t i = 0; i < tree_grid_size; i++) {
+            if (
+                get_tree_grid(
+                    tree_grid,
+                    next_tree_grid
+                )[(j + 1) * (tree_grid_size + 2) + i + 1] == 1
+            )
+                STATS[0] += 1;
+            else if (
+                get_tree_grid(
+                    tree_grid,
+                    next_tree_grid
+                )[(j + 1) * (tree_grid_size + 2) + i + 1] == 3
+            )
+                STATS[2] += 1;
+        }
+    }
+    clEnqueueSVMUnmap(
+        queue,
+        get_tree_grid(tree_grid, next_tree_grid),
+        0,
+        nullptr,
+        nullptr
+    );
+
+    printf("Final  : Alive: %lu, Burning: 0, Dead: %lu\n\n", STATS[0], STATS[2]);
+
+    clFlush(queue);
+    clFinish(queue);
 
     //Usual deallocation
     clSVMFree(context, done);
