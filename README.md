@@ -34,3 +34,12 @@ Note: These numbers show the performance using `atomics`!
 
 These benchmarks were run on **Radxa Rock 5C** (2.4GHz and 1.8GHz max freq cores.)
 These executables for x64 are available in the _Task 2 Submission_ release.
+
+## Task 3
+This program in **LINUX-ONLY** and doesnt work on other platforms!
+
+You need to have a GPU/Device that supports `OpenCLv2` or higher and `SVM memory (coarse-grained)`.
+Youll also need the official drivers. (Integrated GPU might be preferred)
+
+This program was tested using **ARM Mali-G610** gpu on **Radxa Rock 5C**.
+The executable for x64 is available in the _Task 3 Submission_ release.
